@@ -8,16 +8,16 @@ import java.io.*;
  * @Date: 2018/10/23 14:18
  */
 public class TestSM2 {
-    public static void main(String[] args) throws Exception {
+    public static void mainX() throws Exception {
 
-        String filePath = "F:" + File.separator + "0123.zip";
-        File file = new File(filePath);
-
-        // 读取文件, 转换为字节流
-        byte[] datas = FileToByteArray.file2buf(file);
+//        String filePath = "F:" + File.separator + "0123.zip";
+//        File file = new File(filePath);
+//
+//        // 读取文件, 转换为字节流
+//        byte[] datas = FileToByteArray.file2buf(file);
 
         String plainText = "1122334455667788";
-        byte[] sourceData = Util.hexStringToBytes(plainText);
+        byte[] datas = plainText.getBytes();
 
         // 国密规范测试私钥
         String prik = "969FC0F73FA117A040B37D5B5018382A74D40590EAA02809B87FA09196F8276D";
@@ -28,14 +28,14 @@ public class TestSM2 {
         byte[] cipherText = SM2Utils.encrypt(Util.hexStringToBytes(pubk), datas);
         System.out.println(Util.encodeHexString(cipherText));
         System.out.println("");
-        FileToByteArray.BetyToFile("F:" + File.separator + "0123加密.zip",cipherText);
+//        FileToByteArray.BetyToFile("F:" + File.separator + "0123加密.zip",cipherText);
 
-        FileToByteArray.fileToBetyArray("F:" + File.separator + "0123解密.zip");
-        System.out.println("解密: ");
+//        FileToByteArray.fileToBetyArray("F:" + File.separator + "0123解密.zip");
+
         String data = Util.encodeHexString(cipherText);
         byte[] decrypt = SM2Utils.decrypt(Util.hexStringToBytes(prik), Util.hexStringToBytes(data));
-        FileToByteArray.BetyToFile("F:" + File.separator + "0123解密.zip",decrypt);
-
+//        FileToByteArray.BetyToFile("F:" + File.separator + "0123解密.zip",decrypt);
+        System.out.println("解密: "+new String(decrypt) );
 
     }
 }
