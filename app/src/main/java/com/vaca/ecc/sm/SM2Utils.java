@@ -21,6 +21,7 @@ import java.util.Enumeration;
 
 public class SM2Utils 
 {
+	public static String x1,x2;
 
 	public static String generateKeyPair(){
 		SM2 sm2 = SM2.Instance();
@@ -30,6 +31,8 @@ public class SM2Utils
 		BigInteger privateKey = ecpriv.getD();
 		ECPoint publicKey = ecpub.getQ();
 		System.out.println("公钥: " + Util.byteToHex(publicKey.getEncoded())+"\n私钥: " + Util.byteToHex(privateKey.toByteArray()));
+		x1=Util.byteToHex(publicKey.getEncoded());
+		x2=Util.byteToHex(privateKey.toByteArray());
 		return "公钥: " + Util.byteToHex(publicKey.getEncoded())+"私钥: " + Util.byteToHex(privateKey.toByteArray());
 	}
 
