@@ -1,5 +1,7 @@
 package com.vaca.ecc.sm;
 
+import android.util.Log;
+
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Sequence;
@@ -7,6 +9,9 @@ import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERInteger;
 import org.bouncycastle.asn1.DERObject;
 import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
+import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.math.ec.ECPoint;
 
 import java.io.ByteArrayInputStream;
@@ -16,6 +21,20 @@ import java.util.Enumeration;
 
 public class SM2Utils 
 {
+
+	public static String generateKeyPair(){
+		SM2 sm2 = SM2.Instance();
+		AsymmetricCipherKeyPair key = sm2.ecc_key_pair_generator.generateKeyPair();
+		ECPrivateKeyParameters ecpriv = (ECPrivateKeyParameters) key.getPrivate();
+		ECPublicKeyParameters ecpub = (ECPublicKeyParameters) key.getPublic();
+		BigInteger privateKey = ecpriv.getD();
+		ECPoint publicKey = ecpub.getQ();
+		System.out.println("公钥: " + Util.byteToHex(publicKey.getEncoded())+"\n私钥: " + Util.byteToHex(privateKey.toByteArray()));
+		return "公钥: " + Util.byteToHex(publicKey.getEncoded())+"私钥: " + Util.byteToHex(privateKey.toByteArray());
+	}
+
+
+
 	public static byte[] encrypt(byte[] publicKey, byte[] data) throws IOException
 	{
 		if (publicKey == null || publicKey.length == 0)
@@ -44,25 +63,11 @@ public class SM2Utils
 		//     System.out.println("C2 " + Util.byteToHex(source));
 		//     System.out.println("C3 " + Util.byteToHex(c3));
 		//C1 C2 C3拼装成加密字串
+		Log.e("fuck",Util.encodeHexString(source));
 		String encryptdata = Util.encodeHexString(c1.getEncoded())+Util.encodeHexString(source)+Util.encodeHexString(c3);
 		return Util.hexStringToBytes(encryptdata);
 
-		/*
-		DERInteger x = new DERInteger(c1.getX().toBigInteger());
-		DERInteger y = new DERInteger(c1.getY().toBigInteger());
-		DEROctetString derDig = new DEROctetString(c3);
-		DEROctetString derEnc = new DEROctetString(source);
-		ASN1EncodableVector v = new ASN1EncodableVector();
-		v.add(x);
-		v.add(y);
-		v.add(derDig);
-		v.add(derEnc);
-		DERSequence seq = new DERSequence(v);
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		DEROutputStream dos = new DEROutputStream(bos);
-		dos.writeObject(seq);
-		return bos.toByteArray();
-		*/
+
 	}
 	
 	public static byte[] decrypt(byte[] privateKey, byte[] encryptedData) throws IOException
@@ -93,25 +98,7 @@ public class SM2Utils
 
 		SM2 sm2 = SM2.Instance();
 		BigInteger userD = new BigInteger(1, privateKey);
-		/*
-		ByteArrayInputStream bis = new ByteArrayInputStream(enc);
-		ASN1InputStream dis = new ASN1InputStream(bis);
-		DERObject derObj = dis.readObject();
-		ASN1Sequence asn1 = (ASN1Sequence) derObj;
-		DERInteger x = (DERInteger) asn1.getObjectAt(0);
-		DERInteger y = (DERInteger) asn1.getObjectAt(1);
 
-		ECPoint c1 = sm2.ecc_curve.createPoint(x.getValue(), y.getValue(), true);
-		
-		Cipher cipher = new Cipher();
-		cipher.Init_dec(userD, c1);
-		DEROctetString data = (DEROctetString) asn1.getObjectAt(3);
-		enc = data.getOctets();
-		cipher.Decrypt(enc);
-		byte[] c3 = new byte[32];
-		cipher.Dofinal(c3);
-		return enc;
-	*/
 		//通过C1实体字节来生成ECPoint
 		ECPoint c1 = sm2.ecc_curve.decodePoint(c1Bytes);
 		Cipher cipher = new Cipher();
@@ -218,72 +205,7 @@ public class SM2Utils
 	    sm2.sm2Verify(md, userKey, sm2Result.r, sm2Result.s, sm2Result);
         return sm2Result.r.equals(sm2Result.R);
 	}
-	/*
-	public static void main(String[] args) throws Exception 
-	{
-		String plainText = "message digest";
-		byte[] sourceData = plainText.getBytes();
-		
-		// 国密规范测试私钥
-		String prik = "128B2FA8BD433C6C068C8D803DFF79792A519A55171B1B650C23661D15897263";
-		String prikS = new String(Base64.encode(Util.hexToByte(prik)));
-		System.out.println("prikS: " + prikS);
-		System.out.println("");
-		
-		// 国密规范测试用户ID
-		String userId = "ALICE123@YAHOO.COM";
-		
-		System.out.println("ID: " + Util.getHexString(userId.getBytes()));
-		System.out.println("");
-		
-		System.out.println("签名: ");
-		byte[] c = SM2Utils.sign(userId.getBytes(), Base64.decode(prikS.getBytes()), sourceData);
-		System.out.println("sign: " + Util.getHexString(c));
-		System.out.println("");
-		
-		// 国密规范测试公钥
-		String pubk = "040AE4C7798AA0F119471BEE11825BE46202BB79E2A5844495E97C04FF4DF2548A7C0240F88F1CD4E16352A73C17B7F16F07353E53A176D684A9FE0C6BB798E857";
-		String pubkS = new String(Base64.encode(Util.hexToByte(pubk)));
-		System.out.println("pubkS: " + pubkS);
-		System.out.println("");
 
-		System.out.println("验签: ");
-		boolean vs = SM2Utils.verifySign(userId.getBytes(), Base64.decode(pubkS.getBytes()), sourceData, c);
-		System.out.println("验签结果: " + vs);
-		System.out.println("");
-		
-		System.out.println("加密: ");
-		byte[] cipherText = SM2Utils.encrypt(Base64.decode(pubkS.getBytes()), sourceData);
-		System.out.println(new String(Base64.encode(cipherText)));
-		System.out.println("");
-		
-		System.out.println("解密: ");
-		plainText = new String(SM2Utils.decrypt(Base64.decode(prikS.getBytes()), cipherText));
-		System.out.println(plainText);
-		
-	}
-	*/
-	public static void SM2_TEST() throws Exception
-	{
-		String plainText = "1122334455667788";
-		byte[] sourceData = Util.hexStringToBytes(plainText);
-
-		// 国密规范测试私钥
-		String prik = "969FC0F73FA117A040B37D5B5018382A74D40590EAA02809B87FA09196F8276D";
-
-		// 国密规范测试公钥
-		String pubk = "04ABC2230A05A72CEB667B20019C4F2A580E4D0A3BE9D20BF914565AB3B82631E1C0E15803FA3ADE3E6D9EEF293CBD8BAECC51D82B61404A39584198B6985686FB";
-		System.out.println("加密: ");
-		byte[] cipherText = SM2Utils.encrypt(Util.hexStringToBytes(pubk), sourceData);
-		System.out.println(Util.encodeHexString(cipherText));
-		System.out.println("");
-
-		System.out.println("解密: ");
-		String data = "04ADE0AFDD137B5E9B2CF3F4D71D329E06F3E8006598A12BB8B6A4B31F8E1D2266EFB1015812E10DC058940A3C8AB8BA29FFE788F85A5D236C3526BBA8D0E0A10D5806DAE0C2DEFADC1A49CE657D4311CDF65D9F38F1CF5004F2E4BA922EA538C9E75007CA0C7AADD8";
-		plainText = Util.encodeHexString(SM2Utils.decrypt(Util.hexStringToBytes(prik), Util.hexStringToBytes(data)));
-		System.out.println(plainText);
-
-	}
 
 
 
